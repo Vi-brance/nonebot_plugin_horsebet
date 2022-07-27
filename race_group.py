@@ -1,7 +1,7 @@
+import random
 import time
 from typing import List
 
-# from .player import player
 from .horse import horse
 from .setting import *
 
@@ -9,18 +9,30 @@ from .setting import *
 # 马场信息
 class race_group:
     # 初始化
-    def __init__(self, init_horse_num: int, uid: int):
+    def __init__(self, init_horse_num: int):
         # 初始化每匹马的信息
-        self.horses = [horse(i) for i in range(init_horse_num)]
+        self.horses = [horse(i, random.randint(setting_horse_buff[0], setting_horse_buff[1])) for i in range(init_horse_num)]
         # 当前回合数
         self.round = 0
         # 比赛开始信息，True为开始
         self.start = False
-        # 庄家uid
-        self.maker_uid = uid
         # 初始化马场的时间
         self.time = time.time()
+        # 初始化每匹马下注的金额
+        all_buff = init_horse_num * setting_horse_buff[1]
+        for i in self.horses:
+            all_buff += i.buff
+        for i in self.horses:
+            i.base_gold = int(setting_base_gold * (i.buff + setting_horse_buff[1]) / all_buff)
+            i.odds(setting_base_gold)
     
+    # 返回马儿脚力
+    def get_horse_buff(self) -> str:
+        horse_data = ''
+        for horse in self.horses:
+            horse_data += f'\n[{horse.horse_num + 1}]的脚力：{horse.buff}'
+        return horse_data[1: len(horse_data)]
+
     # 返回参加赛马数
     def query_of_horses(self) -> int:
         return len(self.horses)
@@ -54,11 +66,11 @@ class race_group:
         gold_all = 0
         for gold in self.horses:
             gold_all += gold.get_gold()
-        return gold_all
+        return gold_all + setting_base_gold
 
     # 显示赔率信息
     def show_odds(self) -> str:
         odds = ''
         for i in range(len(self.horses)):
-            odds += '\n' + self.horses[i].odds(self.get_all_gold())
+            odds += '\n' + self.horses[i].odds(int(self.get_all_gold() * (1 - setting_maker_rate)))
         return odds[1: len(odds)]

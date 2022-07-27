@@ -1,11 +1,7 @@
 import json
-import os
 import random
 from typing import Tuple
-import datetime
-from matplotlib.pyplot import plasma
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
-from pathlib import Path
 
 from .setting import *
 
@@ -16,8 +12,12 @@ class player:
     def __init__(self, group: int):
         self.players = {}  # 玩家信息
         self.group = group
-        self.file = file
-        if not self.file.exists():
+        self.file = player_file_path
+
+    # 读取json信息
+    def load(self):
+        self.file.parent.mkdir(exist_ok=True, parents=True)
+        if not self.file.exists():  # 文件不存在时新建文件
             with open(self.file, 'w', encoding='utf-8') as f:
                 json.dump({}, f, ensure_ascii=False, indent=4)
         with open(self.file, 'r', encoding='utf-8') as f:
@@ -31,6 +31,7 @@ class player:
     def init_player_data(self, event: GroupMessageEvent):
         user_id = event.user_id
         nickname = event.sender.card if event.sender.card else event.sender.nickname
+        self.load()
         if user_id not in self.players.keys():  # 没有玩家信息则初始化信息
             self.players[user_id] = {
                 'nickname': nickname,
@@ -60,6 +61,7 @@ class player:
     
     # 返回玩家拥有金币
     def get_gold(self, uid: int) -> int:
+        self.load()
         return self.players[uid]['gold']
 
     # 结算玩家金币    
@@ -70,5 +72,5 @@ class player:
     def display_gold(self, uid: int) -> str:
         if uid not in self.players.keys():
             return '你未在本系统中登录过'
-        cur_player = self.player[uid]
+        cur_player = self.players[uid]
         return f"{cur_player['nickname']} 的金币有 {cur_player['gold']} 枚"
