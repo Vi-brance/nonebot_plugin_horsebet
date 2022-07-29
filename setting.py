@@ -3,9 +3,8 @@ import pathlib
 from typing import Dict
 import time
 
+# 当前时间
 cur_time = time.localtime()
-
-
 # 跑道长度
 setting_track_length = 20
 # 每回合基础移动力范围
@@ -28,7 +27,8 @@ setting_base_gold = 5000
 def keyToInt(x: Dict) -> Dict:
     return {int(k): v for k, v in x.items()}
 
-#脚力与奖池比例的映射
+
+# 脚力与奖池比例的映射
 def odd_buff(x: int) -> float:
     a = x + 1 - setting_horse_buff[0]
-    return round(math.exp(0.6*a))
+    return round(math.exp(0.6 * a))

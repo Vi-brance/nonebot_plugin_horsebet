@@ -32,7 +32,7 @@ class horse:
         return False
 
     # 马儿移动
-    def location_move(self):
+    def move(self):
         if self.location != setting_track_length:  # 未达到终点
             self.location_add = random.randint(base_move[0], base_move[1] + self.buff)  # 随机前进步数
             self.location += self.location_add  # 更新马儿位置
@@ -44,12 +44,12 @@ class horse:
     def display(self):
         display = f'[{self.horse_num + 1}]'
         for i in range(setting_track_length - self.location):
-            display += '__'  # 马前的赛道
+            display += '➖'  # 马前的赛道
         display += '🐎'  # 马
         for i in range(self.location_add):
-            display += '💨'  # 标记马的奔跑速度
+            display += '💨'  # 马的奔跑速度
         for i in range(setting_track_length - self.location, setting_track_length - self.location_add - 1):
-            display += '__'  # 马后的赛道
+            display += '➖'  # 马后的赛道
         return display
 
     # 计算马儿的所有赌金

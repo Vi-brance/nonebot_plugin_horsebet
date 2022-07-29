@@ -1,5 +1,4 @@
 import random
-import time
 from typing import List
 
 from .horse import horse
@@ -10,31 +9,34 @@ from .setting import *
 class Race:
     # 初始化
     def __init__(self, init_horse_num: int):
-        # 初始化每匹马的信息
-        self.horses = [horse(i, random.randint(setting_horse_buff[0], setting_horse_buff[1])) for i in
-                       range(init_horse_num)]
+        # 初始化每匹马
+        self.horses = [horse(i, random.randint(setting_horse_buff[0], setting_horse_buff[1])) for i in range(init_horse_num)]
         # 当前回合数
         self.round = 0
         # 比赛开始信息，True为开始
         self.start = False
+        # 马场赌金
+        self.gold = setting_base_gold
 
-        # 初始化每匹马下注的金额
+        # 分配每匹马下注的初始金额
         for i in self.horses:
-            i.base_gold = int(setting_base_gold * odd_buff(i.buff) / 100)
-            i.odds(setting_base_gold)
+            i.base_gold = int(self.gold * odd_buff(i.buff) / 100)
+            i.odds(self.gold)
 
     # 返回参加赛马数
-    def query_of_horses(self) -> int:
+    @property
+    def horse_num(self) -> int:
         return len(self.horses)
 
-    # 添加马儿的赌金信息，返回True则为增加赌金，False为新建赌金信息
-    def add_coin(self, horse_num: int, uid: int, gold: int) -> bool:
-        return self.horses[horse_num].add_coin(uid, gold)
+    # 添加马儿的赌金信息，返回True则为加注，False为下注
+    def add_coin(self, bet_horse: int, uid: int, gold: int) -> bool:
+        self.gold += gold
+        return self.horses[bet_horse].add_coin(uid, gold)
 
     # 马儿移动
-    def move(self) -> None:
+    def move(self):
         for i in range(len(self.horses)):
-            self.horses[i].location_move()
+            self.horses[i].move()
 
     # 显示马场界面
     def display(self) -> str:
@@ -51,18 +53,11 @@ class Race:
                 winner.append(self.horses[i].horse_num)
         return winner
 
-    # 计算马场总赌金
-    def get_all_gold(self) -> int:
-        gold_all = 0
-        for gold in self.horses:
-            gold_all += gold.get_gold()
-        return gold_all + setting_base_gold
-
     # 显示赔率信息
     def show_odds(self) -> str:
         odds = ''
         for i in range(len(self.horses)):
-            odds += '\n' + self.horses[i].odds(int(self.get_all_gold() * (1 - setting_maker_rate)))
+            odds += '\n' + self.horses[i].odds(int(self.gold * (1 - setting_maker_rate)))
         return odds[1: len(odds)]
 
     # 查找玩家下注的马号

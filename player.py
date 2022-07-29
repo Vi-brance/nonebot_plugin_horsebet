@@ -89,13 +89,12 @@ class Player:
         rank = []
         for player in self.players.values():
             rank.append({'nickname': player['nickname'], 'gold': player['gold']})
-        rank = sorted(rank, key=lambda i: i['gold'], reverse=True)
+        rank = sorted(rank, key=lambda x: x['gold'], reverse=True)
         display = ''
-        max_len = max(len(name['nickname']) for name in rank)
         for i in range(len(rank)):
             if i == 5:
                 return display[1: len(display)]
-            display += '\n' + f'{rank[i]["nickname"]}' + '  ' * (max_len - len(rank[i]['nickname'])) + f'：{rank[i]["gold"]}'
+            display += '\n' + f'{rank[i]["gold"]:4}：{rank[i]["nickname"]}'
         return display[1: len(display)]
 
     # 玩家赢场次计数
