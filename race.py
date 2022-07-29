@@ -40,16 +40,24 @@ class Race:
 
     # 显示马场界面
     def display(self) -> str:
-        display = ''
+        display = '[00]'
+        ahead_pos = max(x.location for x in self.horses) + 2
+        for i in range(track_display_length):
+            display += '🚩' if (ahead_pos - i) % track_gape == 0 else '☁️'
         for i in range(len(self.horses)):
-            display += '\n' + self.horses[i].display()  # 每行为每匹马的路线
-        return display[1: len(display)]
+            display += '\n' + self.horses[i].display(ahead_pos)  # 每行为每匹马的路线
+        return display
 
     # 获取胜者信息
     def get_winner(self) -> List:
         winner = []
+        max_track = track_length
         for i in range(len(self.horses)):
-            if self.horses[i].location >= setting_track_length:
+            if self.horses[i].location == max_track:
+                winner.append(self.horses[i].horse_num)
+            elif self.horses[i].location > max_track:
+                max_track = self.horses[i].location
+                winner.clear()
                 winner.append(self.horses[i].horse_num)
         return winner
 
@@ -62,8 +70,8 @@ class Race:
 
     # 查找玩家下注的马号
     def find_player(self, uid: int) -> int:
-        for horse in self.horses:
-            for player in horse.horse_gold:
+        for x in self.horses:
+            for player in x.horse_gold:
                 if player['uid'] == uid:
-                    return horse.horse_num
+                    return x.horse_num
         return -1

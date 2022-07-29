@@ -1,4 +1,4 @@
-from nonebot import on_command
+import nonebot
 from nonebot.adapters.onebot.v11 import (
     GROUP,
     GroupMessageEvent,
@@ -11,13 +11,13 @@ from .race import Race
 from .player import Player
 from .setting import *
 
-RaceSign = on_command('赛马签到', permission=GROUP, priority=5, block=True)
-RaceNew = on_command('赛马创建', permission=GROUP, priority=5, block=True)
-RaceStart = on_command('赛马开始', permission=GROUP, priority=5, block=True)
-RaceStop = on_command('赛马终止', permission=GROUP, priority=5, block=True)
-RaceBet = on_command('下注', permission=GROUP, priority=5, block=True)
-PlayerGold = on_command('资产查询', permission=GROUP, priority=5, block=True)
-PlayerGoldRank = on_command('赛马排行', permission=GROUP, priority=5, block=True)
+RaceSign = nonebot.on_fullmatch('赛马签到', permission=GROUP, priority=5, block=True)
+RaceNew = nonebot.on_command('赛马创建', permission=GROUP, priority=5, block=True)
+RaceStart = nonebot.on_fullmatch('赛马开始', permission=GROUP, priority=5, block=True)
+RaceStop = nonebot.on_fullmatch('赛马终止', permission=GROUP, priority=5, block=True)
+RaceBet = nonebot.on_command('下注', permission=GROUP, priority=5, block=True)
+PlayerGold = nonebot.on_fullmatch('资产查询', permission=GROUP, priority=5, block=True)
+PlayerGoldRank = nonebot.on_fullmatch('赛马排行', permission=GROUP, priority=5, block=True)
 
 # 全局数据
 race_data: Dict[int, Dict[str, Union[Player, Race]]] = {}

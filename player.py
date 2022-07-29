@@ -1,6 +1,6 @@
+from nonebot.adapters.onebot.v11 import GroupMessageEvent
 import json
 import random
-from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from time import strftime
 
 from .setting import *
@@ -75,6 +75,12 @@ class Player:
         self.players[uid]['gold'] += gold
         self.save()
 
+    # 玩家赢场次计数
+    def add_win(self, uid: int):
+        self.load()
+        self.players[uid]['win'] += 1
+        self.save()
+
     # 显示玩家拥有的金币数
     def display_gold(self, uid: int) -> str:
         self.load()
@@ -96,8 +102,3 @@ class Player:
                 return display[1: len(display)]
             display += '\n' + f'{rank[i]["gold"]:4}：{rank[i]["nickname"]}'
         return display[1: len(display)]
-
-    # 玩家赢场次计数
-    def add_win(self, uid: int):
-        self.load()
-        self.players[uid]['win'] += 1

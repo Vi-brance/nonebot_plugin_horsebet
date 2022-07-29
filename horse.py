@@ -31,27 +31,6 @@ class horse:
         self.horse_gold.append({'uid': uid, 'gold': gold})  # 创建新信息
         return False
 
-    # 马儿移动
-    def move(self):
-        if self.location != setting_track_length:  # 未达到终点
-            self.location_add = random.randint(base_move[0], base_move[1] + self.buff)  # 随机前进步数
-            self.location += self.location_add  # 更新马儿位置
-            if self.location > setting_track_length:  # 判断是否越界
-                self.location_add -= self.location - setting_track_length
-                self.location = setting_track_length
-
-    # 马儿在赛道上的位置显示
-    def display(self):
-        display = f'[{self.horse_num + 1}]'
-        for i in range(setting_track_length - self.location):
-            display += '➖'  # 马前的赛道
-        display += '🐎'  # 马
-        for i in range(self.location_add):
-            display += '💨'  # 马的奔跑速度
-        for i in range(setting_track_length - self.location, setting_track_length - self.location_add - 1):
-            display += '➖'  # 马后的赛道
-        return display
-
     # 计算马儿的所有赌金
     def get_gold(self) -> int:
         gold_all = self.base_gold
@@ -62,4 +41,31 @@ class horse:
     # 计算并显示赔率信息
     def odds(self, all_gold: int) -> str:
         self.horse_odds = all_gold / self.get_gold()
-        return f'{self.horse_num + 1} 号马：{self.horse_odds: .2f}'
+        return f'[{self.horse_num + 1:02}]：{self.horse_odds: .2f}'
+
+    # 马儿移动
+    def move(self):
+        if self.location != track_length:  # 未达到终点
+            self.location_add = random.randint(base_move[0], base_move[1] + self.buff)  # 随机前进步数
+            self.location += self.location_add  # 更新马儿位置
+
+    # 马儿在赛道上的位置显示
+    def display(self, ahead_pos: int):
+        display = f'[{self.horse_num + 1:02}]'  # 编号
+        if ahead_pos - self.location >= track_display_length:
+            for i in range(track_display_length - 1):
+                display += '🏁' if ahead_pos - i == track_length else '➖'  # 超出视线范围
+            display += '❓'
+            return display
+        for i in range(ahead_pos - self.location):
+            display += '🏁' if ahead_pos - i == track_length else '➖'  # 马前的赛道
+        display += '🐎'  # 马
+        if ahead_pos - self.location + 1 == track_display_length:
+            return display
+        for i in range(self.location_add):
+            if ahead_pos - self.location + 1 + i == track_display_length:
+                return display
+            display += '💨'  # 马的奔跑速度
+        for i in range(track_display_length - (ahead_pos - self.location) - 1 - self.location_add):
+            display += '🚩' if self.location - 1 - self.location_add - i == 0 else '➖'  # 马后的赛道
+        return display
