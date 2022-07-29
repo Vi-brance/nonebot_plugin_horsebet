@@ -3,7 +3,7 @@ import random
 from .setting import *
 
 
-# 赛马信息
+# 马匹信息类
 class horse:
     # 初始化
     def __init__(self, init_horse_num: int, buff: int):
