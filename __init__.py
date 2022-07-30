@@ -64,6 +64,8 @@ async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
         await RaceNew.finish(f'请输入 {setting_horse_num[0]} - {setting_horse_num[1]} 之间的数初始化赛马')
     init_player(group)
     race_data[group]['race'] = Race(init_horse_num)
+    await RaceNew.send(race_data[group]['race'].display_horse_attribute())
+    time.sleep(1)
     await RaceNew.send('赛马准备完毕！\n输入 下注[马道][金币] 即可加入赛马')
     await RaceNew.finish('当前赔率：\n' + race_data[group]['race'].show_odds())
 
@@ -126,13 +128,13 @@ async def _(event: GroupMessageEvent):
         race_data[group]['race'].move()
         display += race_data[group]['race'].display()
         await RaceStart.send(display)
-        time.sleep(3)
+        time.sleep(2)
         winner = race_data[group]['race'].get_winner()
         if winner:  # 判断是否有马到达终点
             # 赛马结算
             for win in winner:
                 win_horse = race_data[group]['race'].horses[win]
-                for win_player in win_horse.horse_gold:
+                for win_player in win_horse.uid_gold:
                     race_data[group]['player'].change_gold(win_player['uid'],
                                                            int(win_player['gold'] * win_horse.horse_odds))
                     race_data[group]['player'].add_win(win_player['uid'])
