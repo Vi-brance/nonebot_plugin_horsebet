@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/horserace.iml" filepath="$PROJECT_DIR$/.idea/horserace.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../nonebot_plugin_horsebet/.idea/nonebot_plugin_horsebet.iml" filepath="$PROJECT_DIR$/../nonebot_plugin_horsebet/.idea/nonebot_plugin_horsebet.iml" />
     </modules>
   </component>
 </project>
