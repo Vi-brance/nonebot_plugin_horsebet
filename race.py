@@ -4,13 +4,13 @@ from typing import List
 from attr import Attribute
 
 from .horse import horse
-from .setting import *
+from .config import *
 
 
 # 马场信息类
 class Race:
     # 初始化
-    def __init__(self, init_horse_num: int):
+    def __init__(self, init_horse_num: int, uid: int):
         # 马场马匹数
         self.horse_num = init_horse_num
         # 初始化每匹马
@@ -21,6 +21,8 @@ class Race:
         self.start = False
         # 马场赌金
         self.gold = setting_base_gold
+        # 创建马场的玩家id
+        self.host_id = uid
 
         # 分配每匹马下注的初始金额
         for i in self.horses:
@@ -29,7 +31,7 @@ class Race:
             i.odds(self.gold)
 
     # 返回所有马匹总属性
-    def get_attributes(self):
+    def get_attributes(self) -> int:
         attribute = 0
         for i in self.horses:
             attribute += i.get_attribute()
@@ -38,10 +40,20 @@ class Race:
     # 查找玩家下注的马号
     def find_player(self, uid: int) -> int:
         for x in self.horses:
-            for player in x.uid_gold:
-                if player['uid'] == uid:
-                    return x.num
+            if uid in x.uid_gold.keys():
+                return x.num
         return -1
+
+    # 返回所有下注的玩家id和对应金币
+    def get_uid_gold(self) -> Dict[int, int]:
+        uid_gold = {}
+        for x in self.horses:
+            for y in x.uid_gold.keys():
+                if y in uid_gold.keys():
+                    uid_gold[y] += x.uid_gold[y]
+                else:
+                    uid_gold[y] = x.uid_gold[y]
+        return uid_gold
 
     # 添加马儿的赌金信息，返回True则为加注，False为下注
     def add_coin(self, bet_horse: int, uid: int, gold: int) -> bool:
@@ -82,7 +94,7 @@ class Race:
         odds = ''
         for i in range(len(self.horses)):
             odds += '\n' + \
-                self.horses[i].odds(int(self.gold * (1 - setting_maker_rate)))
+                    self.horses[i].odds(int(self.gold * (1 - setting_maker_rate)))
         return odds[1: len(odds)]
 
     # 显示马场界面

@@ -4,17 +4,18 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent,
     Message)
 from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
 from nonebot.log import logger
 from typing import Union
 
 from .race import Race
 from .player import Player
-from .setting import *
+from .config import *
 
 RaceSign = nonebot.on_fullmatch('赛马签到', permission=GROUP, priority=5, block=True)
 RaceNew = nonebot.on_command('赛马创建', permission=GROUP, priority=5, block=True)
 RaceStart = nonebot.on_fullmatch('赛马开始', permission=GROUP, priority=5, block=True)
-RaceStop = nonebot.on_fullmatch('赛马终止', permission=GROUP, priority=5, block=True)
+RaceStop = nonebot.on_fullmatch('赛马终止', permission=SUPERUSER, priority=5, block=True)
 RaceBet = nonebot.on_command('下注', permission=GROUP, priority=5, block=True)
 PlayerGold = nonebot.on_fullmatch('资产查询', permission=GROUP, priority=5, block=True)
 PlayerGoldRank = nonebot.on_fullmatch('赛马排行', permission=GROUP, priority=5, block=True)
@@ -34,12 +35,13 @@ def init_player(group: int):
 @RaceSign.handle()
 async def _(event: GroupMessageEvent):
     global race_data
-    init_player(event.group_id)
-    gold = race_data[event.group_id]['player'].sign(event)
+    group = event.group_id
+    init_player(group)
+    gold = race_data[group]['player'].sign(event)
     if gold == -1:  # 已签到
         await RaceSign.finish('今日已签到', at_sender=True)
     else:
-        logger.info(f'USER {event.user_id} | GROUP {event.group_id} 获取 {gold} 枚金币')  # 日志记录
+        logger.info(f'USER {event.user_id} | GROUP {group} 获取 {gold} 枚金币')  # 日志记录
         await RaceSign.finish(f'签到成功，你获得了 {gold} 枚金币', at_sender=True)
 
 
@@ -48,11 +50,6 @@ async def _(event: GroupMessageEvent):
 async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
     global race_data
     group = event.group_id
-    init_horse_num = 0
-    try:
-        init_horse_num = int(arg.extract_plain_text())  # 获取初始化的马道数
-    except ValueError:
-        await RaceNew.finish('输入 赛马创建+数字 创建赛马')
     try:
         if race_data[group]['race'].start:
             await RaceNew.finish('赛马正在进行中')
@@ -60,10 +57,15 @@ async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
             await RaceNew.finish('赛马已创建')
     except KeyError:
         pass
+    init_horse_num = 0
+    if is_number(arg.extract_plain_text()):
+        init_horse_num = int(arg.extract_plain_text())  # 获取初始化的马道数
+    else:
+        await RaceNew.finish('输入 赛马创建+数字 创建赛马')
     if init_horse_num not in range(setting_horse_num[0], setting_horse_num[1] + 1):
         await RaceNew.finish(f'请输入 {setting_horse_num[0]} - {setting_horse_num[1]} 之间的数初始化赛马')
     init_player(group)
-    race_data[group]['race'] = Race(init_horse_num)
+    race_data[group]['race'] = Race(init_horse_num, event.user_id)
     await RaceNew.send(race_data[group]['race'].display_horse_attribute())
     time.sleep(1)
     await RaceNew.send('赛马准备完毕！\n输入 下注[马道][金币] 即可加入赛马')
@@ -85,13 +87,9 @@ async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
         await RaceBet.finish('赛马还没创建')
     # 过滤参数错误
     args = arg.extract_plain_text().strip().split()
-    try:
-        args = [int(x) for x in args]  # 参数类型错误
-    except ValueError:
+    if len(args) != 2 or not (is_number(args[0]) and is_number(args[1])):  # 接受参数个数错误
         await RaceBet.finish('格式错误，请输入 下注[马道][金币] 加入赛马')
-    if len(args) != 2:  # 接受参数个数错误
-        await RaceBet.finish('格式错误，请输入 下注[马道][金币] 加入赛马')
-    bet_horse, gold = args[0] - 1, args[1]
+    bet_horse, gold = int(args[0]) - 1, int(args[1])
     # 过滤马道和赌金非法错误
     if bet_horse not in range(race_data[group]['race'].horse_num):  # 马道数错误
         await RaceBet.finish('没有对应马道')
@@ -115,10 +113,12 @@ async def _(event: GroupMessageEvent):
     global race_data
     group = event.group_id
     try:
-        if not race_data[group]['race'].start:  # 更新赛马开始状态
-            race_data[group]['race'].start = True
-        else:
+        if race_data[group]['race'].start:
             await RaceStart.finish('赛马已经开始了！')
+        elif race_data[group]['race'].host_id != event.user_id:  # 更新赛马开始状态
+            await RaceStart.finish('只有创建赛马的人能开始')
+        else:
+            race_data[group]['race'].start = True
     except KeyError:
         await RaceStart.finish('赛马还没创建')
     # 赛马主体
@@ -134,10 +134,9 @@ async def _(event: GroupMessageEvent):
             # 赛马结算
             for win in winner:
                 win_horse = race_data[group]['race'].horses[win]
-                for win_player in win_horse.uid_gold:
-                    race_data[group]['player'].change_gold(win_player['uid'],
-                                                           int(win_player['gold'] * win_horse.horse_odds))
-                    race_data[group]['player'].add_win(win_player['uid'])
+                for win_player in win_horse.uid_gold.keys():
+                    race_data[group]['player'].change_gold(win_player, int(win_horse.uid_gold[win_player] * win_horse.horse_odds))
+                    race_data[group]['player'].add_win(win_player)
             del race_data[group]['race']
             await RaceStart.finish(f'{[x + 1 for x in winner]} 号马成功冲线！')
 
@@ -149,6 +148,9 @@ async def _(event: GroupMessageEvent):
     group = event.group_id
     if not race_data[group]['race']:
         await RaceStop.finish(f'没有进行中的比赛')
+    ret_uid_gold = race_data[group]['race'].get_uid_gold()
+    for uid in ret_uid_gold.keys():
+        race_data[group]['player'].change_gold(uid, ret_uid_gold[uid])
     del race_data[group]['race']
     await RaceStop.finish(f'已终止比赛')
 

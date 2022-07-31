@@ -3,7 +3,7 @@ import json
 import random
 from time import strftime
 
-from .setting import *
+from .config import *
 
 
 # 玩家信息类
