@@ -1,3 +1,5 @@
+import time
+from typing import Union, Dict, Tuple
 import nonebot
 from nonebot.adapters.onebot.v11 import (
     GROUP,
@@ -6,11 +8,9 @@ from nonebot.adapters.onebot.v11 import (
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
 from nonebot.log import logger
-from typing import Union
 
 from .race import Race
 from .player import Player
-from .config import *
 
 RaceSign = nonebot.on_fullmatch('赛马签到', permission=GROUP, priority=5, block=True)
 RaceNew = nonebot.on_command('赛马创建', permission=GROUP, priority=5, block=True)
@@ -22,6 +22,8 @@ PlayerGoldRank = nonebot.on_fullmatch('赛马排行', permission=GROUP, priority
 
 # 全局数据
 race_data: Dict[int, Dict[str, Union[Player, Race]]] = {}
+# 马道数范围
+setting_horse_num = (8, 10)
 
 
 # 初始化data的玩家信息
@@ -29,6 +31,20 @@ def init_player(group: int):
     global race_data
     if group not in race_data.keys():
         race_data[group] = {'player': Player(group)}
+
+
+# 判断字符串是否是数字
+def is_number(s) -> Tuple[bool, float]:
+    try:
+        return True, float(s)
+    except ValueError:
+        pass
+    try:
+        import unicodedata
+        return True, unicodedata.numeric(s)
+    except (TypeError, ValueError):
+        pass
+    return False, 0
 
 
 # 响应赛马签到
@@ -66,7 +82,7 @@ async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
         await RaceNew.finish(f'请输入 {setting_horse_num[0]} - {setting_horse_num[1]} 之间的数初始化赛马')
     init_player(group)
     race_data[group]['race'] = Race(init_horse_num, event.user_id)
-    await RaceNew.send(race_data[group]['race'].display_horse_attribute())
+    await RaceNew.send(race_data[group]['race'].display_horse_ppt())
     time.sleep(1)
     await RaceNew.send('赛马准备完毕！\n输入 下注[马道][金币] 即可加入赛马')
     await RaceNew.finish('当前赔率：\n' + race_data[group]['race'].show_odds())
@@ -95,6 +111,8 @@ async def _(event: GroupMessageEvent, arg: Message = CommandArg()):
         await RaceBet.finish('没有对应马道')
     if gold <= 0:  # 赌金为非正数
         await RaceBet.finish('你还想我给你钱吗？')
+    if uid not in race_data[group]['player'].players.keys():
+        await RaceBet.finish('请先签到')
     if race_data[group]['player'].get_gold(uid) < gold:  # 赌金大于拥有金币
         await RaceBet.finish('金币不足')
     horse_bet = race_data[group]['race'].find_player(uid) + 1
@@ -117,6 +135,8 @@ async def _(event: GroupMessageEvent):
             await RaceStart.finish('赛马已经开始了！')
         elif race_data[group]['race'].host_id != event.user_id:  # 更新赛马开始状态
             await RaceStart.finish('只有创建赛马的人能开始')
+        elif race_data[group]['race'].player_num < int(race_data[group]['race'].horse_num / 3):
+            await RaceStart.finish('下注玩家过少，无法开始比赛')
         else:
             race_data[group]['race'].start = True
     except KeyError:
@@ -135,7 +155,8 @@ async def _(event: GroupMessageEvent):
             for win in winner:
                 win_horse = race_data[group]['race'].horses[win]
                 for win_player in win_horse.uid_gold.keys():
-                    race_data[group]['player'].change_gold(win_player, int(win_horse.uid_gold[win_player] * win_horse.horse_odds))
+                    race_data[group]['player'].change_gold(win_player,
+                                                           int(win_horse.uid_gold[win_player] * win_horse.horse_odds))
                     race_data[group]['player'].add_win(win_player)
             del race_data[group]['race']
             await RaceStart.finish(f'{[x + 1 for x in winner]} 号马成功冲线！')

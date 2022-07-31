@@ -1,57 +1,75 @@
+import random
 import pathlib
-from typing import Dict, Tuple
 import time
-
-# 当前时间
-cur_time = time.localtime()
-# 跑道长度
-track_length = 50
-# 跑道显示长度
-track_display_length = 11
-# 跑道标记间隔
-track_gape = 10
-
-# 基础前进
-base_move = (1, 3)
-# 爆发触发距离在赛道总长度的比例
-explode_start = 0.2
-# 属性生成概率
-generate_attribute = [1, 1, 1, 2, 2, 3]
-# 属性名称映射
-attribute_name = ('一般', '良好', '优秀')
-# 属性总值范围
-attribute_range = (6, 10)
-# 基础触发成功率
-base_state = 35
-# 基础持久
-base_persis = 20
-
-# 马道数范围
-setting_horse_num = (8, 10)
-# 签到金币范围
-sign_gold = (50, 100)
-# 信息存取地址
-player_file_path = pathlib.Path() / 'data' / 'horseBet'
-# 系统抽成
-setting_maker_rate = 0.2
-# 奖池基础金币
-setting_base_gold = 5000
+from pydantic import BaseSettings, Extra
 
 
-# dict中key转为int
-def keyToInt(x: Dict) -> Dict:
-    return {int(k): v for k, v in x.items()}
+# 配置类
+class Config(BaseSettings, extra=Extra.ignore):
+    # race类的config
+    class race:
+        def __init__(self):
+            # 系统抽成
+            self.maker_rate = 0.2
+            # 初始奖池金币数
+            self.base_gold = 5000
+
+        # 属性点数对应的表达
+        def ppt_name(self, ppt: int) -> str:
+            name_list = ('一般', '良好', '优秀')
+            return name_list[ppt - 1]
+
+    # horse类的config
+    class horse:
+        def __init__(self):
+            # 赛道总长度
+            self.length = 50
+            # 屏幕宽度
+            self.display_len = 11
+            # 标记节点间隔
+            self.display_gape = 10
+            # 基础移动
+            self.base_move = (1, 3)
+            # 爆发触发的位置
+            self.explode_start = int(0.8 * self.length)
+            # 属性点上限
+            self.ppt_max = 3
+
+        # 随机生成属性点，点数越高概率越低
+        def generate_ppt(self) -> int:
+            generate_list = []
+            for i in reversed(range(1, self.ppt_max + 1)):
+                for _ in range(self.ppt_max - i + 1):
+                    generate_list.append(i)
+            return random.choice(generate_list)
+
+        # 属性点数和是否在范围内
+        def ppt_in_range(self, x: int) -> bool:
+            return x in range(6, 11)
+
+        # 速度属性是否增强
+        def is_max_add(self, state: int) -> bool:
+            per = random.randint(1, 100)
+            return True if per <= 35 + state * 15 else False
+
+        # 持久属性有效距离
+        def persis_rate(self, persis: int) -> int:
+            return int(self.length * (20 + persis * 10) / 100)
+
+    # player类的config
+    class player:
+        def __init__(self):
+            # 签到天数
+            self.cur_time = int(time.strftime('%j', time.localtime()))
+            # 保存文件目录
+            self.file_path = pathlib.Path() / 'data' / 'horseBet'
+
+        # 金币范围
+        def sign_gold(self) -> int:
+            return random.randint(50, 100)
 
 
-# 判断字符串是否是数字
-def is_number(s) -> Tuple[bool, float]:
-    try:
-        return True, float(s)
-    except ValueError:
-        pass
-    try:
-        import unicodedata
-        return True, unicodedata.numeric(s)
-    except (TypeError, ValueError):
-        pass
-    return False, 0
+# 三个类的配置接口
+race_config = Config.race()
+horse_config = Config.horse()
+player_config = Config.player()

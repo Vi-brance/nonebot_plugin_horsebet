@@ -1,9 +1,9 @@
-from nonebot.adapters.onebot.v11 import GroupMessageEvent
 import json
-import random
-from time import strftime
+from typing import Dict
 
-from .config import *
+from nonebot.adapters.onebot.v11 import GroupMessageEvent
+
+from .config import player_config as config
 
 
 # 玩家信息类
@@ -15,7 +15,7 @@ class Player:
         # 所在群号
         self.group = group
         # 玩家信息文件目录
-        self.file = player_file_path / 'player.json'
+        self.file = config.file_path / 'player.json'
 
     # 读取玩家信息
     def load(self):
@@ -24,9 +24,9 @@ class Player:
             with open(self.file, 'w', encoding='utf-8') as f:
                 json.dump({}, f, ensure_ascii=False, indent=4)
         with open(self.file, 'r', encoding='utf-8') as f:
-            player_file: Dict = json.load(f)
+            player_file: Dict[str, Dict] = json.load(f)
             if str(self.group) in player_file.keys():
-                self.players = keyToInt(player_file[str(self.group)])  # key转换为int，便于操作
+                self.players = {int(k): v for k, v in player_file[str(self.group)].items()}  # key转换为int，便于操作
             else:  # 该群没有玩家信息
                 self.players = {}
 
@@ -56,11 +56,11 @@ class Player:
         self.load()
         self.init_player_data(event)  # 初始化新玩家信息
         uid = event.user_id
-        if self.players[uid]['is_signed'] == int(strftime('%j', cur_time)):  # 已签到
+        if self.players[uid]['is_signed'] == config.cur_time:  # 已签到
             return -1
-        gold = random.randint(sign_gold[0], sign_gold[1])
+        gold = config.sign_gold()
         self.players[uid]['gold'] += gold
-        self.players[uid]['is_signed'] = int(strftime('%j', cur_time))
+        self.players[uid]['is_signed'] = config.cur_time
         self.save()
         return gold
 
